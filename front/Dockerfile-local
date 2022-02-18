@@ -1,0 +1,27 @@
+# build frontend application
+FROM node:14.19.0-alpine As build-step
+RUN apk add --no-cache git
+
+WORKDIR /usr/app
+
+COPY package.json package-lock.json ./
+
+RUN npm install
+
+COPY . .
+
+RUN npm run build:local-container
+
+# deploy to nginx
+FROM nginx:1.17.1-alpine
+COPY --from=build-step /usr/app/build /usr/share/nginx/html
+
+# configure mime-types
+COPY mime.types /etc/nginx/mime.types
+
+# use local nginx config
+COPY nginx-local.conf /etc/nginx/nginx.conf
+
+# use developers certificates
+COPY mysite.localhost.crt /etc/nginx/mysite.localhost.crt
+COPY device.key /etc/nginx/device.key

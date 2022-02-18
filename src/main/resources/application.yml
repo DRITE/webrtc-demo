@@ -1,0 +1,19 @@
+server:
+  port: 8085
+  ssl:
+    enabled: true
+    # The format used for the keystore. It could be set to JKS in case it is a JKS file
+    key-store-type: JKS
+    # The path to the keystore containing the certificate
+    key-store: classpath:baeldung.jks
+    # The password used to generate the certificate
+    key-store-password: password
+    # The alias mapped to the certificate
+    key-alias: baeldung
+
+trust:
+  #trust store location
+  store:
+    location: classpath:baeldung.jks
+    #trust store password
+    password: password

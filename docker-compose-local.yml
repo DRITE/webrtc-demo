@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  # nginx serving React application
+  frontend:
+    build:
+      context: ./front
+      dockerfile: Dockerfile-local
+    ports:
+      - "80:80"
+      - "443:443"
+  # Spring Boot application with REST endpoints for Dev Environment/local launch
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile-local
+      args:
+        stage: local
+    ports:
+      - "8085:8085"
+      - "8443:8443"

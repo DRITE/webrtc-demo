@@ -1,24 +1,25 @@
 package com.example.webrtc.demo;
 
-import com.example.webrtc.demo.messages.AddOffer;
 import com.example.webrtc.demo.messages.Answer;
 import com.example.webrtc.demo.messages.FindRoomAnswer;
 import com.example.webrtc.demo.messages.RemoteCandidateAdded;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.stereotype.Component;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
-import org.springframework.web.socket.handler.TextWebSocketHandler;
-
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.springframework.stereotype.Component;
+import org.springframework.web.socket.BinaryMessage;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
 @Component
-public class SocketHandler extends TextWebSocketHandler {
+public class SocketHandler extends AbstractWebSocketHandler {
 
 	List<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
 	Map<String, Room> rooms = new HashMap<>();
@@ -76,15 +77,9 @@ public class SocketHandler extends TextWebSocketHandler {
 						session.sendMessage(candidateAns);
 					}
 				}
-//				WebSocketSession calleeSession = r.getCalleeId() != null ? sessions.stream().filter(i -> r.getCalleeId().equals(i.getId())).findFirst().orElse(null) : null;
-//				if (calleeSession != null) {
-//					RemoteCandidateAdded toCallee = new RemoteCandidateAdded(candidate);
-//					TextMessage ans = new TextMessage(mapper.writeValueAsString(toCallee));
-//					calleeSession.sendMessage(ans);
-//				} else {
+
 //					//todo tell caller there is no callee
-//				}
-				// send caller candidate to callee above
+
 			} else {
 				// todo tell callee that caller is absent
 			}
@@ -98,16 +93,7 @@ public class SocketHandler extends TextWebSocketHandler {
 				Candidate candidate = new Candidate(candidateNode.get("candidate").textValue(), candidateNode.get("sdpMLineIndex").asInt(), candidateNode.get("sdpMid").textValue());
 				r.addCallerCandidate(candidate);
 
-//				// send caller candidate to callee below
-//				WebSocketSession calleeSession = r.getCalleeId() != null ? sessions.stream().filter(i -> r.getCalleeId().equals(i.getId())).findFirst().orElse(null) : null;
-//				if (calleeSession != null) {
-//					RemoteCandidateAdded toCallee = new RemoteCandidateAdded(candidate);
-//					TextMessage ans = new TextMessage(mapper.writeValueAsString(toCallee));
-//					calleeSession.sendMessage(ans);
-//				} else {
-//					//todo tell caller there is no callee
-//				}
-//				// send caller candidate to callee above
+	//todo tell caller there is no callee
 
 			} else {
 				// todo tell caller there is no room?
@@ -140,12 +126,37 @@ public class SocketHandler extends TextWebSocketHandler {
 
 		}
 
-
-//		for (WebSocketSession webSocketSession : sessions) {
-//			if (webSocketSession.isOpen() && !session.getId().equals(webSocketSession.getId())) {
-//				webSocketSession.sendMessage(message);
+//		if (messageObj.get("event") == null) {
+//			String calleeSessionId = session.getId();
+//			List<Room> roomsList = new ArrayList<>(rooms.values());
+//			Optional<Room> r = Optional.of(roomsList.stream().filter(i -> calleeSessionId.equals(i.getCalleeId())).findFirst()).orElse(null);
+//			if (r.isPresent()) {
+//				String callerSessionId = r.get().getCallerId();
+//				WebSocketSession callerSession = sessions.stream().filter(i -> callerSessionId.equals(i.getId())).findFirst().orElse(null);
+//				if (callerSession != null && callerSession.isOpen()) {
+//					callerSession.sendMessage(message);
+//				}
 //			}
 //		}
+
+	}
+
+	@Override
+	public void handleBinaryMessage(WebSocketSession session, BinaryMessage message) {
+		String calleeSessionId = session.getId();
+		List<Room> roomsList = new ArrayList<>(rooms.values());
+		Optional<Room> r = Optional.of(roomsList.stream().filter(i -> calleeSessionId.equals(i.getCalleeId())).findFirst()).orElse(null);
+		if (r.isPresent()) {
+			String callerSessionId = r.get().getCallerId();
+			WebSocketSession callerSession = sessions.stream().filter(i -> callerSessionId.equals(i.getId())).findFirst().orElse(null);
+			if (callerSession != null && callerSession.isOpen()) {
+				try {
+					callerSession.sendMessage(message);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	@Override
